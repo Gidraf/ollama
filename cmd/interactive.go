@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"time"
+	"os/exec"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -111,7 +113,7 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 	scanner, err := readline.New(readline.Prompt{
 		Prompt:         ">>> ",
 		AltPrompt:      "... ",
-		Placeholder:    "Send a message (/? for help)",
+		Placeholder:    "Send a message now (/? for help)",
 		AltPlaceholder: `Use """ to end multi-line input`,
 	})
 	if err != nil {
@@ -127,7 +129,6 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 
 	var sb strings.Builder
 	var multiline MultilineState
-
 	for {
 		line, err := scanner.Readline()
 		switch {
@@ -153,7 +154,8 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 			before, ok := strings.CutSuffix(line, `"""`)
 			sb.WriteString(before)
 			if !ok {
-				fmt.Fprintln(&sb)
+				// fmt.Fprintln(&sb)
+				// fmt.Fprintln(&sb)
 				continue
 			}
 
@@ -173,7 +175,7 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 			sb.WriteString(line)
 			if !ok {
 				// no multiline terminating string; need more input
-				fmt.Fprintln(&sb)
+				// fmt.Fprintln(&sb)
 				multiline = MultilinePrompt
 				scanner.Prompt.UseAlt = true
 			}
@@ -420,7 +422,7 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 				fmt.Printf("Unknown command '%s'. Type /? for help\n", args[0])
 				continue
 			}
-
+			fmt.Println("Hello How are you 1")
 			sb.WriteString(line)
 		default:
 			sb.WriteString(line)
@@ -438,7 +440,6 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 				newMessage.Content = msg
 				newMessage.Images = images
 			}
-
 			opts.Messages = append(opts.Messages, newMessage)
 
 			assistant, err := chat(cmd, opts)
@@ -446,10 +447,38 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 				return err
 			}
 			if assistant != nil {
+				// Parse the response content
+				response := assistant.Content
+			
+				// Extract text content to send to Termux TTS
+				start := strings.Index(response, "{assistant ") + len("{assistant ")
+				end := strings.LastIndex(response, " [] []}")
+				if start >= 0 && end > start {
+					responseText := response[start:end]
+			
+					// Call termux-tts-speak with the extracted text
+					go func(text string) {
+						cmd := exec.Command("termux-tts-speak", text)
+						err := cmd.Run()
+						if err != nil {
+							fmt.Printf("Error calling Termux TTS: %v\n", err)
+						}
+					}(responseText) // Run TTS in a goroutine to avoid blocking
+				}
+			
+				// Stream the response text to the terminal
+				// for _, char := range response {
+				// 	fmt.Printf("%c", char)
+				// 	time.Sleep(10 * time.Millisecond) // Simulate real-time streaming
+				// }
+			
+				// Append the full assistant response to opts.Messages if needed
 				opts.Messages = append(opts.Messages, *assistant)
 			}
-
+			
+			// Reset the string builder
 			sb.Reset()
+			
 		}
 	}
 }
@@ -471,6 +500,8 @@ func NewCreateRequest(name string, opts runOptions) *api.CreateRequest {
 	if len(opts.Messages) > 0 {
 		req.Messages = opts.Messages
 	}
+
+	fmt.Printf("%s", req)
 
 	return req
 }
