@@ -453,9 +453,16 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 				go func(text string) {
 					cmd := exec.Command("termux-tts-speak", text)
 					fmt.Printf("Speaking: %s\n", text)
-					err := cmd.Run()
-					if err != nil {
-						fmt.Printf("Error calling Termux TTS: %v\n", err)
+
+					// Start the command asynchronously
+					if err := cmd.Start(); err != nil {
+						fmt.Printf("Error starting Termux TTS: %v\n", err)
+						return
+					}
+
+					// Wait for the command to complete
+					if err := cmd.Wait(); err != nil {
+						fmt.Printf("Error while speaking: %v\n", err)
 					}
 				}(responseText) // Run TTS in a goroutine to avoid blocking
 
