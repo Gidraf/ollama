@@ -7,11 +7,10 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"slices"
-	"time"
-	"os/exec"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -449,13 +448,13 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 			if assistant != nil {
 				// Parse the response content
 				response := assistant.Content
-			
+
 				// Extract text content to send to Termux TTS
 				start := strings.Index(response, "{assistant ") + len("{assistant ")
 				end := strings.LastIndex(response, " [] []}")
 				if start >= 0 && end > start {
 					responseText := response[start:end]
-			
+
 					// Call termux-tts-speak with the extracted text
 					go func(text string) {
 						cmd := exec.Command("termux-tts-speak", text)
@@ -465,20 +464,20 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 						}
 					}(responseText) // Run TTS in a goroutine to avoid blocking
 				}
-			
+
 				// Stream the response text to the terminal
 				// for _, char := range response {
 				// 	fmt.Printf("%c", char)
 				// 	time.Sleep(10 * time.Millisecond) // Simulate real-time streaming
 				// }
-			
+
 				// Append the full assistant response to opts.Messages if needed
 				opts.Messages = append(opts.Messages, *assistant)
 			}
-			
+
 			// Reset the string builder
 			sb.Reset()
-			
+
 		}
 	}
 }
