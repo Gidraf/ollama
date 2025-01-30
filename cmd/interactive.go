@@ -451,7 +451,7 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 
 				// Call termux-tts-speak with the full response
 				go func(text string) {
-					cmd := exec.Command("termux-tts-speak", text)
+					cmd := exec.Command("sh", "-c", fmt.Sprintf(`echo "%s" > ~/.tts`, text))
 					fmt.Printf("Speaking: %s\n", text)
 
 					// Start the command asynchronously
