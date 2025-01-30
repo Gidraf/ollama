@@ -458,6 +458,7 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 					// Call termux-tts-speak with the extracted text
 					go func(text string) {
 						cmd := exec.Command("termux-tts-speak", text)
+						fmt.Printf(text)
 						err := cmd.Run()
 						if err != nil {
 							fmt.Printf("Error calling Termux TTS: %v\n", err)
