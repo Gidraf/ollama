@@ -435,7 +435,6 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 				if err != nil {
 					return err
 				}
-
 				newMessage.Content = msg
 				newMessage.Images = images
 			}
@@ -446,40 +445,28 @@ func generateInteractive(cmd *cobra.Command, opts runOptions) error {
 				return err
 			}
 			if assistant != nil {
-				// Parse the response content
-				response := assistant.Content
+				// Use the full response as text
+				responseText := assistant.Content
+				fmt.Printf("Extracted Text: %q\n", responseText) // Debugging output
 
-				// Extract text content to send to Termux TTS
-				start := strings.Index(response, "{assistant ") + len("{assistant ")
-				end := strings.LastIndex(response, " [] []}")
-				if start >= 0 && end > start {
-					responseText := response[start:end]
+				// Call termux-tts-speak with the full response
+				go func(text string) {
+					cmd := exec.Command("termux-tts-speak", text)
+					fmt.Printf("Speaking: %s\n", text)
+					err := cmd.Run()
+					if err != nil {
+						fmt.Printf("Error calling Termux TTS: %v\n", err)
+					}
+				}(responseText) // Run TTS in a goroutine to avoid blocking
 
-					// Call termux-tts-speak with the extracted text
-					go func(text string) {
-						cmd := exec.Command("termux-tts-speak", text)
-						fmt.Printf(text)
-						err := cmd.Run()
-						if err != nil {
-							fmt.Printf("Error calling Termux TTS: %v\n", err)
-						}
-					}(responseText) // Run TTS in a goroutine to avoid blocking
-				}
-
-				// Stream the response text to the terminal
-				// for _, char := range response {
-				// 	fmt.Printf("%c", char)
-				// 	time.Sleep(10 * time.Millisecond) // Simulate real-time streaming
-				// }
-
-				// Append the full assistant response to opts.Messages if needed
+				// Append the full assistant response to opts.Messages
 				opts.Messages = append(opts.Messages, *assistant)
 			}
 
 			// Reset the string builder
 			sb.Reset()
-
 		}
+
 	}
 }
 
